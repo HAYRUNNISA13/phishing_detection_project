@@ -8,3 +8,7 @@ requests==2.31.0
 pillow>=10.2.0  # Görsel işleme için [cite: 72]
 python-multipart==0.0.6
 httpx>=0.25.0
+python-dotenv==1.0.1
+chromadb>=0.4.20
+sentence-transformers>=2.2.2
+PyPDF2>=3.0.1

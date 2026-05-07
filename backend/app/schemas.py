@@ -4,6 +4,7 @@ from typing import Optional
 class PhishingRequest(BaseModel):
     content: str  # SMS metni veya analiz edilecek metin
     image_base64: Optional[str] = None  # Ekran görüntüsü varsa (Qwen2-VL için)
+    document_base64: Optional[str] = None # PDF belgesi varsa
     model: str = "qwen2.5:7b"  # Hangi model ile analiz yapilacagi
 
 class DetectionResponse(BaseModel):

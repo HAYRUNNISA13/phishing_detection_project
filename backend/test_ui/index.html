@@ -2,243 +2,640 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PhishGuard AI - Agentic Dashboard</title>
+    <title>PhishGuard | Enterprise Cyber-Intelligence</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <!-- SweetAlert for Popups -->
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        tech: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            900: '#0B0F19',
+                            800: '#111827',
+                            700: '#1F2937',
+                            accent: '#3B82F6',
+                            accentHover: '#2563EB',
+                            success: '#10B981',
+                            danger: '#EF4444',
+                            warning: '#F59E0B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #06b6d4; border-radius: 10px; }
+        body { background-color: #0B0F19; color: #E5E7EB; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4B5563; }
+        
+        .glass-panel {
+            background: linear-gradient(145deg, rgba(31, 41, 55, 0.4) 0%, rgba(17, 24, 39, 0.6) 100%);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .nav-link {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -8px; left: 0; width: 0%; height: 2px;
+            background: #3B82F6;
+            transition: width 0.3s ease;
+        }
+        .nav-link.active::after { width: 100%; }
+        .nav-link.active { color: #FFFFFF; font-weight: 500; }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.9); opacity: 0.5; }
+            50% { transform: scale(1.05); opacity: 0.2; }
+            100% { transform: scale(0.9); opacity: 0.5; }
+        }
+        .scanner-glow {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%);
+            animation: pulse-ring 3s infinite ease-in-out;
+        }
+        
+        .fade-in { animation: fadeIn 0.4s ease-in-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* SweetAlert Dark Theme Override */
+        .swal2-popup { background: #111827 !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 1rem !important; }
+        .swal2-title { color: #E5E7EB !important; font-family: 'Outfit', sans-serif !important; }
+        .swal2-html-container { color: #9CA3AF !important; font-family: 'Inter', sans-serif !important; }
     </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <header class="text-center mb-10">
-            <h1 class="text-3xl font-bold text-cyan-400"><i class="fas fa-shield-virus"></i> PhishGuard AI</h1>
-            <p class="text-slate-400 text-sm italic">Autonomous Multi-Modal Phishing Detection System</p>
-        </header>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- INPUT PANEL -->
-            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-lg h-fit">
-                <h2 class="text-lg font-semibold mb-4 text-cyan-300">Input Analysis</h2>
-                
-                <label class="block text-xs text-slate-500 mb-2 uppercase font-bold">Select Model Mode</label>
-                <select id="modelSelect" class="w-full bg-slate-900 rounded-lg p-3 text-sm mb-4 border border-slate-700 outline-none focus:border-cyan-500">
-                    <option value="qwen2.5:7b">Qwen 2.5 (Agentic)</option>
-                    <option value="gemma:7b">Gemma 7b (Agentic)</option>
-                    <option value="compare">Compare Models Side-by-Side</option>
-                </select>
-
-                <label class="block text-xs text-slate-500 mb-2 uppercase font-bold">Message Content</label>
-                <textarea id="messageInput" rows="5" class="w-full bg-slate-900 rounded-lg p-3 text-sm mb-4 border border-slate-700 outline-none focus:border-cyan-500" placeholder="Paste the suspicious SMS/Email here..."></textarea>
-                
-                <label class="block text-xs text-slate-500 mb-2 uppercase font-bold">Screenshot (Optional)</label>
-                <input type="file" id="imageInput" accept="image/*" class="block w-full text-xs text-slate-400 mb-6 file:bg-cyan-600 file:text-white file:border-0 file:px-4 file:py-2 file:rounded-lg cursor-pointer">
-                
-                <button onclick="startAnalysis()" id="analyzeBtn" class="w-full bg-cyan-600 py-3 rounded-lg font-bold hover:bg-cyan-500 transition-all flex items-center justify-center gap-2">
-                    <i class="fas fa-brain"></i> RUN AGENT
-                </button>
+<body class="custom-scrollbar" onload="initApp()">
+    
+    <!-- Top Navigation Bar -->
+    <nav class="sticky top-0 z-50 bg-[#0B0F19]/80 backdrop-blur-md border-b border-white/5">
+        <div class="container mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="bg-gradient-to-br from-brand-accent to-indigo-600 p-2 rounded-xl shadow-lg shadow-blue-500/20">
+                    <i class="fas fa-shield-halved text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-tech font-bold tracking-wide text-white">PhishGuard</h1>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-medium">Enterprise Intelligence</p>
+                </div>
             </div>
+            <div class="flex gap-6 md:gap-8 text-sm text-slate-400 font-sans tracking-wide">
+                <div class="nav-link active cursor-pointer flex items-center gap-2" onclick="switchTab('analyzer')" id="tab-analyzer"><i class="fas fa-radar"></i> Intelligence Hub</div>
+                <div class="nav-link cursor-pointer flex items-center gap-2" onclick="switchTab('compare')" id="tab-compare"><i class="fas fa-columns"></i> Model Comparison</div>
+                <div class="nav-link cursor-pointer flex items-center gap-2" onclick="switchTab('dashboard')" id="tab-dashboard"><i class="fas fa-chart-line"></i> SOC Analytics</div>
+            </div>
+        </div>
+    </nav>
 
-            <!-- RESULTS PANEL -->
-            <div id="resultsArea" class="flex flex-col gap-6">
-                <!-- Single Model Terminal View -->
-                <div id="singleView" class="space-y-6">
-                    <div class="bg-black rounded-xl p-4 border border-slate-700 shadow-2xl">
-                        <h3 class="text-xs font-bold text-cyan-500 mb-2 uppercase tracking-widest italic" id="singleTerminalTitle">Agent Logs (Qwen)</h3>
-                        <div id="singleTerminal" class="custom-scrollbar h-48 overflow-y-auto font-mono text-[10px] text-cyan-400 space-y-1">
-                            <div class="opacity-40">> Waiting for input...</div>
+    <div class="container mx-auto px-4 py-10 max-w-7xl">
+
+        <!-- ========================================== -->
+        <!-- VIEW 1: THREAT ANALYZER                    -->
+        <!-- ========================================== -->
+        <div id="view-analyzer" class="block fade-in">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <!-- INPUT PANEL -->
+                <div class="lg:col-span-4 glass-panel p-6 rounded-2xl h-fit border-t-[3px] border-t-brand-accent">
+                    <h2 class="text-lg font-tech font-semibold mb-6 text-white flex items-center gap-2">
+                        <i class="fas fa-crosshairs text-brand-accent"></i> Target Assessment
+                    </h2>
+                    
+                    <label class="block text-xs text-slate-400 mb-2 uppercase font-semibold tracking-wider">Analysis Engine</label>
+                    <div class="relative mb-5">
+                        <select id="modelSelect" class="w-full bg-[#111827] appearance-none rounded-xl p-3.5 text-sm border border-slate-700 outline-none focus:border-brand-accent transition-colors shadow-inner text-slate-200">
+                            <option value="qwen2.5:7b">Qwen 2.5 (Primary Core)</option>
+                            <option value="gemma:7b">Gemma 7b (Secondary Core)</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-4 top-4 text-slate-500 text-sm pointer-events-none"></i>
+                    </div>
+
+                    <label class="block text-xs text-slate-400 mb-2 uppercase font-semibold tracking-wider">Suspicious String / URL</label>
+                    <textarea id="messageInput" rows="5" class="w-full bg-[#111827] rounded-xl p-4 text-sm mb-5 border border-slate-700 outline-none focus:border-brand-accent transition-colors custom-scrollbar shadow-inner text-slate-200" placeholder="Paste the suspicious content, HTML, email body, or shortened URLs..."></textarea>
+                    
+                    <label class="block text-xs text-slate-400 mb-2 uppercase font-semibold tracking-wider">Document / Image Evidence</label>
+                    <div class="mb-6 bg-[#111827] border border-dashed border-slate-700 rounded-xl p-5 text-center hover:border-brand-accent transition-colors relative group overflow-hidden">
+                        <i class="fas fa-cloud-upload-alt text-2xl text-slate-500 group-hover:text-brand-accent transition-colors mb-2 block"></i>
+                        <span class="text-xs text-slate-400 font-medium">Drag & Drop or Click to Browse</span>
+                        <input type="file" id="fileInput" accept="image/*, application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="previewFile(event)">
+                        <div id="fileNameDisplay" class="mt-2 text-[10px] text-brand-accent tracking-widest uppercase hidden truncate px-2"></div>
+                    </div>
+                    
+                    <!-- ADVANCED PREVIEW -->
+                    <div id="imagePreviewContainer" class="hidden relative overflow-hidden rounded-xl border border-slate-700 mb-6 bg-[#0B0F19]">
+                        <img id="imagePreview" src="" alt="Target Analysis" class="w-full h-auto hidden opacity-80 mix-blend-screen">
+                        <div id="pdfPreview" class="w-full py-12 flex flex-col items-center justify-center text-slate-300 hidden">
+                            <i class="fas fa-file-pdf text-4xl mb-3 text-red-400/80"></i>
+                            <span class="text-[11px] uppercase tracking-widest font-semibold">PDF Document Sourced</span>
                         </div>
+                        <div id="scanningOverlay" class="absolute inset-0 bg-[#0B0F19]/80 hidden z-10 hidden backdrop-blur-sm">
+                            <div class="scanner-glow"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="bg-black/50 px-5 py-2.5 rounded-lg border border-brand-accent/50 text-brand-accent font-tech text-xs uppercase tracking-[0.1em] flex items-center gap-2">
+                                    <i class="fas fa-circle-notch fa-spin"></i> Analyzing...
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col gap-3">
+                        <button onclick="startAnalysis()" id="analyzeBtn" class="w-full bg-brand-accent hover:bg-brand-accentHover text-white py-3.5 rounded-xl font-bold tracking-widest text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-[0.98]">
+                            <i class="fas fa-fingerprint"></i> EXECUTE ANALYSIS
+                        </button>
                     </div>
                 </div>
 
-                <!-- Compare Mode Terminal View -->
-                <div id="compareView" class="hidden grid-cols-2 gap-4">
-                    <div class="bg-black rounded-xl p-3 border border-slate-700 shadow-xl">
-                        <h3 class="text-[10px] font-bold text-blue-400 mb-2 uppercase tracking-widest italic">Qwen Logs</h3>
-                        <div id="qwenTerminal" class="custom-scrollbar h-48 overflow-y-auto font-mono text-[9px] text-blue-300 space-y-1">
-                            <div class="opacity-40">> Waiting for input...</div>
+                <!-- RESULTS PANEL -->
+                <div id="resultsArea" class="lg:col-span-8 flex flex-col gap-6">
+                    
+                    <div id="waitingPlaceholder" class="glass-panel rounded-2xl h-full min-h-[500px] flex items-center justify-center border-dashed border-2 border-slate-700/50 text-slate-500 flex-col gap-5">
+                        <div class="p-6 rounded-full bg-slate-800/50">
+                            <i class="fas fa-shield-virus text-5xl text-slate-600"></i>
                         </div>
-                    </div>
-                    <div class="bg-black rounded-xl p-3 border border-slate-700 shadow-xl">
-                        <h3 class="text-[10px] font-bold text-purple-400 mb-2 uppercase tracking-widest italic">Gemma Logs</h3>
-                        <div id="gemmaTerminal" class="custom-scrollbar h-48 overflow-y-auto font-mono text-[9px] text-purple-300 space-y-1">
-                            <div class="opacity-40">> Waiting for input...</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Results Section -->
-                <div id="resultCardsContainer" class="flex flex-col gap-4">
-                    <!-- Single Result Card -->
-                    <div id="singleResultCard" class="hidden bg-slate-800 p-5 rounded-xl border-l-4 border-cyan-500 shadow-lg">
-                        <div id="singleBadge" class="mb-3"></div>
-                        <div class="text-xs text-slate-500 uppercase mb-2">Final Analysis:</div>
-                        <p id="singleExplanation" class="text-sm text-slate-200 leading-relaxed font-light"></p>
+                        <p class="uppercase tracking-widest text-sm font-tech font-semibold text-slate-400">System Standing By</p>
+                        <p class="text-xs text-slate-500 font-sans text-center max-w-sm">Provide a digital artifact or suspicious text to engage the analytical cores.</p>
                     </div>
 
-                    <!-- Compare Mode Result Cards -->
-                    <div id="compareResultCards" class="hidden grid-cols-2 gap-4">
-                        <div class="bg-slate-800 p-4 rounded-xl border-t-4 border-blue-500 shadow-lg">
-                            <h4 class="text-sm font-bold text-blue-400 mb-2"><i class="fas fa-robot"></i> Qwen Result</h4>
-                            <div id="qwenBadge" class="mb-3"></div>
-                            <p id="qwenExplanation" class="text-[11px] text-slate-300 leading-relaxed"></p>
+                    <div id="downloadReportArea" class="hidden flex justify-end fade-in">
+                        <button onclick="downloadPDF('printableReportArea')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-5 py-2.5 rounded-xl font-medium text-xs tracking-wide flex items-center gap-2 border border-slate-600 transition-colors shadow-sm">
+                            <i class="fas fa-file-export text-slate-400"></i> Export Result PDF
+                        </button>
+                    </div>
+
+                    <div id="printableReportArea" class="flex flex-col gap-6">
+                        <!-- Visual Threat Panel -->
+                        <div id="visualThreatPanel" class="hidden bg-[#111827] p-5 rounded-2xl border border-slate-700 relative overflow-hidden transition-all duration-500 fade-in">
+                            <div class="absolute top-0 right-0 h-full w-32 bg-gradient-to-l from-brand-accent/5 to-transparent pointer-events-none"></div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="bg-brand-accent h-2 w-2 rounded-full"></div>
+                                <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-widest">Pre-Processing complete</h3>
+                            </div>
+                            <div class="bg-[#0B0F19] p-4 rounded-xl text-xs text-slate-400 leading-relaxed border-l-[3px] border-l-brand-accent">
+                                <p class="font-mono">Artifact successfully ingested. Synthesizing multimodal patterns into LLM reasoning engine.</p>
+                            </div>
                         </div>
-                        <div class="bg-slate-800 p-4 rounded-xl border-t-4 border-purple-500 shadow-lg">
-                            <h4 class="text-sm font-bold text-purple-400 mb-2"><i class="fas fa-microchip"></i> Gemma Result</h4>
-                            <div id="gemmaBadge" class="mb-3"></div>
-                            <p id="gemmaExplanation" class="text-[11px] text-slate-300 leading-relaxed"></p>
+
+                        <!-- SINGLE CORE RESULT -->
+                        <div id="singleResultCard" class="hidden glass-panel p-8 rounded-2xl shadow-xl relative overflow-hidden fade-in">
+                            <div class="flex justify-between items-start mb-8">
+                                <div>
+                                    <h3 class="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1">Analytical Engine</h3>
+                                    <p id="singleModelName" class="text-lg font-tech font-bold text-white tracking-wide"></p>
+                                </div>
+                                <div id="singleBadge" class="scale-100 origin-top-right"></div>
+                            </div>
+                            
+                            <div class="bg-[#0B0F19]/50 rounded-xl p-6 border border-white/5">
+                                <div class="text-xs text-slate-400 uppercase font-bold tracking-widest mb-4 flex items-center gap-2 border-b border-white/5 pb-3">
+                                    <i class="fas fa-brain text-brand-accent"></i> Intelligence & Reasoning
+                                </div>
+                                <div id="singleExplanation" class="text-[13px] text-slate-300 leading-relaxed font-sans whitespace-pre-line"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: MODEL COMPARISON (HISTORY BASED)   -->
+        <!-- ========================================== -->
+        <div id="view-compare" class="hidden fade-in">
+            <div class="mb-8 flex items-center justify-between bg-gradient-to-r from-slate-800 to-transparent p-6 rounded-2xl border-l-4 border-purple-500">
+                <div>
+                    <h2 class="text-2xl font-tech font-bold text-white tracking-wide">Model Comparison Hub</h2>
+                    <p class="text-xs text-slate-400 mt-1">Cross-validating the latest Qwen and Gemma evaluations from system logs.</p>
+                </div>
+                <button onclick="loadComparisonHistory()" class="bg-[#1F2937] hover:bg-[#374151] px-4 py-2 rounded-lg transition-colors border border-slate-700 text-xs font-medium text-slate-300 flex items-center gap-2">
+                    <i class="fas fa-sync-alt"></i> Sync History
+                </button>
+            </div>
+
+            <div id="downloadCompareReportArea" class="mb-5 flex justify-end">
+                <button onclick="downloadPDF('compareExportArea')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-medium text-xs tracking-wide flex items-center gap-2 transition-colors shadow-[0_0_15px_rgba(79,70,229,0.3)]">
+                    <i class="fas fa-file-pdf"></i> Export Comparison PDF
+                </button>
+            </div>
+
+            <!-- Side-By-Side Comparison Grid -->
+            <div id="compareExportArea" class="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-10">
+                
+                <div class="glass-panel p-6 rounded-2xl flex flex-col h-full border-t-[3px] border-cyan-500">
+                    <div class="flex justify-between items-center bg-[#111827] -mx-6 -mt-6 p-5 rounded-t-2xl border-b border-white/5 mb-5">
+                        <h3 class="text-sm font-tech font-bold text-slate-200 tracking-wider"><i class="fas fa-microchip text-slate-500 mr-2"></i>Qwen 2.5 (Last Scan)</h3>
+                        <div id="histQwenBadge"></div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto custom-scrollbar text-[13px] text-slate-300 leading-relaxed" id="histQwenExplanation">
+                        <p class="text-slate-500 text-center py-10 italic">No Qwen history found.</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl flex flex-col h-full border-t-[3px] border-purple-500">
+                    <div class="flex justify-between items-center bg-[#111827] -mx-6 -mt-6 p-5 rounded-t-2xl border-b border-white/5 mb-5">
+                        <h3 class="text-sm font-tech font-bold text-slate-200 tracking-wider"><i class="fas fa-cube text-slate-500 mr-2"></i>Gemma (Last Scan)</h3>
+                        <div id="histGemmaBadge"></div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto custom-scrollbar text-[13px] text-slate-300 leading-relaxed" id="histGemmaExplanation">
+                        <p class="text-slate-500 text-center py-10 italic">No Gemma history found.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 3: SOC DASHBOARD                      -->
+        <!-- ========================================== -->
+        <div id="view-dashboard" class="hidden fade-in">
+            <div class="mb-8 flex items-center justify-between bg-gradient-to-r from-[#111827] to-transparent p-6 rounded-2xl border-l-4 border-brand-accent">
+                <div>
+                    <h2 class="text-2xl font-tech font-bold text-white tracking-wide">SOC Analytics</h2>
+                    <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest">Global Threat Feed & System Metrics</p>
+                </div>
+                <button onclick="loadDashboardStats()" class="bg-[#1F2937] hover:bg-[#374151] px-4 py-2 rounded-lg transition-colors border border-slate-700 text-xs font-medium text-slate-300 flex items-center gap-2">
+                    <i class="fas fa-sync-alt"></i> Refresh Data
+                </button>
+            </div>
+
+            <!-- Top Stat Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><i class="fas fa-globe text-6xl"></i></div>
+                    <p class="text-[10px] uppercase tracking-widest text-slate-400 mb-2 font-semibold">Total Audits</p>
+                    <h3 id="stat-total" class="text-4xl font-tech font-bold text-white">--</h3>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group border-b-4 border-brand-danger">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><i class="fas fa-radiation text-6xl"></i></div>
+                    <p class="text-[10px] uppercase tracking-widest text-brand-danger mb-2 font-semibold">Phishing Detected</p>
+                    <h3 id="stat-phishing" class="text-4xl font-tech font-bold text-white">--</h3>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group border-b-4 border-brand-success">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform"><i class="fas fa-shield-check text-6xl"></i></div>
+                    <p class="text-[10px] uppercase tracking-widest text-brand-success mb-2 font-semibold">Verified Safe</p>
+                    <h3 id="stat-safe" class="text-4xl font-tech font-bold text-white">--</h3>
+                </div>
+            </div>
+
+            <!-- Charts and List row -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Chart -->
+                <div class="lg:col-span-1 glass-panel p-6 rounded-2xl flex flex-col">
+                    <h3 class="text-xs uppercase tracking-widest font-bold text-slate-400 mb-6 flex items-center gap-2"><i class="fas fa-chart-pie"></i> Distribution Ratio</h3>
+                    <div class="flex-1 flex items-center justify-center p-4">
+                        <canvas id="ratioChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Table -->
+                <div class="lg:col-span-2 glass-panel p-6 rounded-2xl overflow-hidden flex flex-col">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xs uppercase tracking-widest font-bold text-slate-400 flex items-center gap-2"><i class="fas fa-list"></i> Activity Ledger</h3>
+                        <span class="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-500">Last 10 Records</span>
+                    </div>
+                    <div class="overflow-x-auto flex-1 custom-scrollbar">
+                        <table class="w-full text-left text-sm text-slate-300 border-collapse">
+                            <thead class="text-[10px] uppercase tracking-wider text-slate-500 bg-[#111827]">
+                                <tr>
+                                    <th class="px-5 py-4 rounded-tl-lg font-semibold">Timestamp</th>
+                                    <th class="px-5 py-4 font-semibold">Verdict</th>
+                                    <th class="px-5 py-4 font-semibold">Engine</th>
+                                    <th class="px-5 py-4 rounded-tr-lg font-semibold">Intelligence Snippet</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stat-recent-list" class="divide-y divide-white/5 font-sans text-xs">
+                                <!-- JS Injected Logs -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
+    <!-- MAIN JAVASCRIPT -->
     <script>
-        const socket = new WebSocket('ws://127.0.0.1:8000/ws');
-        
-        socket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                appendLog(data.model, data.message);
-            } catch(e) {
-                appendLog("system", event.data);
-            }
-        };
+        let currentChart = null;
 
-        function appendLog(model, msg) {
-            const isCompare = document.getElementById('modelSelect').value === 'compare';
-            const logHTML = `<span class="opacity-50">[${new Date().toLocaleTimeString()}]</span> > ${msg}`;
+        function initApp() {}
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
             
-            if (isCompare) {
-                const div = document.createElement('div');
-                div.className = "border-b border-white/5 pb-1";
-                div.innerHTML = logHTML;
+            document.getElementById('view-analyzer').classList.add('hidden');
+            document.getElementById('view-compare').classList.add('hidden');
+            document.getElementById('view-dashboard').classList.add('hidden');
+            
+            document.getElementById('view-' + tabId).classList.remove('hidden');
 
-                if (model.includes("qwen")) {
-                    const t = document.getElementById('qwenTerminal');
-                    t.appendChild(div); t.scrollTop = t.scrollHeight;
-                } else if (model.includes("gemma")) {
-                    const t = document.getElementById('gemmaTerminal');
-                    t.appendChild(div); t.scrollTop = t.scrollHeight;
+            if (tabId === 'dashboard') loadDashboardStats();
+            if (tabId === 'compare') loadComparisonHistory();
+        }
+
+        // ===============================================
+        // ANALYZER LOGIC
+        // ===============================================
+        function previewFile(event) {
+            const file = event.target.files[0];
+            const container = document.getElementById('imagePreviewContainer');
+            const img = document.getElementById('imagePreview');
+            const pdfIcon = document.getElementById('pdfPreview');
+            const nameDisplay = document.getElementById('fileNameDisplay');
+            
+            if (file) {
+                nameDisplay.textContent = file.name;
+                nameDisplay.classList.remove('hidden');
+                container.classList.remove('hidden');
+                
+                if (file.type === "application/pdf") {
+                    img.classList.add('hidden');
+                    pdfIcon.classList.remove('hidden');
                 } else {
-                    const t1 = document.getElementById('qwenTerminal');
-                    const t2 = document.getElementById('gemmaTerminal');
-                    t1.appendChild(div.cloneNode(true)); t1.scrollTop = t1.scrollHeight;
-                    t2.appendChild(div.cloneNode(true)); t2.scrollTop = t2.scrollHeight;
+                    pdfIcon.classList.add('hidden');
+                    img.classList.remove('hidden');
+                    const reader = new FileReader();
+                    reader.onload = e => img.src = e.target.result;
+                    reader.readAsDataURL(file);
                 }
             } else {
-                const div = document.createElement('div');
-                div.className = "border-b border-white/5 pb-1";
-                div.innerHTML = logHTML;
-                const t = document.getElementById('singleTerminal');
-                t.appendChild(div);
-                t.scrollTop = t.scrollHeight;
+                container.classList.add('hidden');
+                nameDisplay.classList.add('hidden');
             }
         }
 
         async function startAnalysis() {
             const msg = document.getElementById('messageInput').value;
-            const fileInput = document.getElementById('imageInput').files[0];
+            const fileInput = document.getElementById('fileInput').files[0];
             const modelVal = document.getElementById('modelSelect').value;
             
-            if(!msg) return alert("Please enter a message!");
-            
-            // UI Reset
-            document.getElementById('analyzeBtn').disabled = true;
-            document.getElementById('analyzeBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> RUNNING...';
-            
-            const isCompare = modelVal === 'compare';
-            
-            // Toggle Views
-            document.getElementById('singleView').classList.toggle('hidden', isCompare);
-            document.getElementById('singleResultCard').classList.add('hidden');
-            document.getElementById('compareView').classList.toggle('hidden', false);
-            document.getElementById('compareView').classList.toggle('grid', isCompare);
-            document.getElementById('compareView').classList.toggle('hidden', !isCompare);
-            document.getElementById('compareResultCards').classList.add('hidden');
-            
-            if (isCompare) {
-                document.getElementById('qwenTerminal').innerHTML = '';
-                document.getElementById('gemmaTerminal').innerHTML = '';
-            } else {
-                document.getElementById('singleTerminalTitle').innerText = `Agent Logs (${modelVal.includes("qwen") ? "Qwen" : "Gemma"})`;
-                document.getElementById('singleTerminal').innerHTML = '';
+            if(!msg && !fileInput) {
+                Swal.fire({
+                    title: 'Missing Identifier',
+                    text: 'Please input a suspicious URL, message, or upload a document.',
+                    icon: 'warning',
+                    confirmButtonColor: '#3B82F6'
+                });
+                return;
             }
             
-            // Process Image if exists
-            let base64 = null;
+            document.getElementById('waitingPlaceholder').classList.add('hidden');
+            const btnAnalyze = document.getElementById('analyzeBtn');
+            btnAnalyze.disabled = true;
+            btnAnalyze.classList.add('opacity-50', 'cursor-not-allowed'); 
+            btnAnalyze.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> SCANNING ASSET...';
+            
+            document.getElementById('singleResultCard').classList.add('hidden');
+            document.getElementById('visualThreatPanel').classList.add('hidden');
+            document.getElementById('downloadReportArea').classList.add('hidden');
+            
+            const scanningOverlay = document.getElementById('scanningOverlay');
+            if(fileInput) scanningOverlay.classList.remove('hidden');
+            
+            let imageBase64 = null;
+            let documentBase64 = null;
+
             if (fileInput) {
-                const reader = new FileReader();
-                base64 = await new Promise(resolve => {
-                    reader.onload = () => resolve(reader.result.split(',')[1]);
-                    reader.readAsDataURL(fileInput);
-                });
+                if (fileInput.type === "application/pdf") {
+                    documentBase64 = await new Promise(resolve => {
+                        const r = new FileReader();
+                        r.onload = e => resolve(e.target.result.split(',')[1]);
+                        r.readAsDataURL(fileInput);
+                    });
+                } else {
+                    imageBase64 = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const img = document.createElement('img');
+                            img.onload = () => {
+                                let w = img.width; let h = img.height;
+                                const MAX_DIM = 600; 
+                                if (w > h) { if (w > MAX_DIM) { h *= MAX_DIM / w; w = MAX_DIM; } } 
+                                else { if (h > MAX_DIM) { w *= MAX_DIM / h; h = MAX_DIM; } }
+                                const canvas = document.createElement('canvas');
+                                canvas.width = w; canvas.height = h;
+                                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                                resolve(canvas.toDataURL('image/jpeg', 0.5).split(',')[1]);
+                            };
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(fileInput);
+                    });
+                }
             }
 
-            const endpoint = isCompare ? '/detect/compare' : '/detect/agentic';
             const payload = {
-                content: msg,
-                image_base64: base64,
-                model: isCompare ? 'gemma:7b' : modelVal // default gemma model if compare
+                content: msg || "Please analyze the attached artifact.",
+                image_base64: imageBase64,
+                document_base64: documentBase64,
+                model: modelVal
             };
 
             try {
-                const response = await fetch(`http://127.0.0.1:8000/api/v1${endpoint}`, {
+                const response = await fetch(`http://127.0.0.1:8000/api/v1/detect/agentic`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
                 });
                 
                 const data = await response.json();
-                
-                if (isCompare) {
-                    displayCompareResults(data);
+
+                if (fileInput) document.getElementById('visualThreatPanel').classList.remove('hidden');
+
+                displaySingleResult(data, modelVal);
+                document.getElementById('downloadReportArea').classList.remove('hidden');
+
+                // Instant Pop-up Warning
+                if(data.is_phishing) {
+                    Swal.fire({
+                        title: '⚠️ CRITICAL THREAT DETECTED',
+                        text: 'This asset exhibits malicious behavior. Do not interact with the source.',
+                        icon: 'error',
+                        confirmButtonText: 'View Report',
+                        confirmButtonColor: '#EF4444'
+                    });
                 } else {
-                    displaySingleResult(data);
+                    Swal.fire({
+                        title: '✅ SECURE ASSET',
+                        text: 'No malicious activity detected. Safe to proceed.',
+                        icon: 'success',
+                        confirmButtonText: 'Dismiss',
+                        confirmButtonColor: '#10B981'
+                    });
                 }
+                
             } catch (e) {
-                appendLog("system", "ERROR: Connection Failed. Is the backend running?");
+                Swal.fire({ title: 'Connection Error', text: 'Backend unreachable. Check server logs.', icon: 'error' });
                 console.error(e);
+                document.getElementById('waitingPlaceholder').classList.remove('hidden');
             } finally {
-                document.getElementById('analyzeBtn').disabled = false;
-                document.getElementById('analyzeBtn').innerHTML = '<i class="fas fa-brain"></i> RUN AGENT';
+                scanningOverlay.classList.add('hidden');
+                
+                btnAnalyze.disabled = false;
+                btnAnalyze.classList.remove('opacity-50', 'cursor-not-allowed'); 
+                btnAnalyze.innerHTML = '<i class="fas fa-fingerprint"></i> EXECUTE ANALYSIS';
             }
         }
 
+        // ===============================================
+        // RENDERING UTILS
+        // ===============================================
         function createBadge(isPhishing) {
             return isPhishing 
-                ? '<span class="bg-red-900/30 text-red-500 border border-red-500 px-3 py-1 rounded text-[10px] font-bold tracking-widest">CRITICAL: PHISHING DETECTED</span>'
-                : '<span class="bg-green-900/30 text-green-500 border border-green-500 px-3 py-1 rounded text-[10px] font-bold tracking-widest">VERDICT: SECURE</span>';
+                ? '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#EF4444]/10 border border-[#EF4444]/20 text-[#EF4444] text-[11px] font-bold tracking-widest uppercase"><i class="fas fa-radiation"></i> Phishing</span>'
+                : '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#10B981]/10 border border-[#10B981]/20 text-[#10B981] text-[11px] font-bold tracking-widest uppercase"><i class="fas fa-check-circle"></i> Secure</span>';
         }
 
-        function displaySingleResult(data) {
+        function formatText(text) {
+            if(!text) return "";
+            return text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+                       .replace(/\n/g, '<br>');
+        }
+
+        function displaySingleResult(data, modelVal) {
             const card = document.getElementById('singleResultCard');
             card.classList.remove('hidden');
+            document.getElementById('singleModelName').innerText = modelVal.includes('qwen') ? 'Qwen 2.5' : 'Gemma';
             document.getElementById('singleBadge').innerHTML = createBadge(data.is_phishing);
-            document.getElementById('singleExplanation').innerText = data.explanation;
+            document.getElementById('singleExplanation').innerHTML = formatText(data.explanation);
         }
 
-        function displayCompareResults(data) {
-            const cards = document.getElementById('compareResultCards');
-            cards.classList.remove('hidden');
-            cards.classList.add('grid');
-            
-            // Process Qwen
-            const qwenData = data['qwen2.5:7b'];
-            if (qwenData) {
-                document.getElementById('qwenBadge').innerHTML = createBadge(qwenData.verdict === 'Phishing');
-                document.getElementById('qwenExplanation').innerText = qwenData.reasoning;
+        // ===============================================
+        // HISTORY / COMPARISON LOGIC
+        // ===============================================
+        async function loadComparisonHistory() {
+            try {
+                // We fetch the SOC Dashboard stats which returns the last 10 records
+                const res = await fetch('http://127.0.0.1:8000/api/v1/stats');
+                const data = await res.json();
+                
+                // Fetch the actual full records via a quick workaround (we'll use snippet since it is truncated in the original, we just display what exists)
+                // Actually the API /stats endpoint only gives 'snippet'. If we want full explanation we should show what's there.
+                // Wait, if snippet is too short, let's just show it. It's enough for the "historical comparison" proof of concept.
+
+                const qwenLog = data.recent.find(r => r.mode.includes('qwen'));
+                const gemmaLog = data.recent.find(r => r.mode.includes('gemma'));
+
+                if(qwenLog) {
+                    document.getElementById('histQwenBadge').innerHTML = createBadge(qwenLog.verdict === 'True');
+                    document.getElementById('histQwenExplanation').innerHTML = formatText(qwenLog.snippet + " ... (Loaded from SOC History)");
+                }
+
+                if(gemmaLog) {
+                    document.getElementById('histGemmaBadge').innerHTML = createBadge(gemmaLog.verdict === 'True');
+                    document.getElementById('histGemmaExplanation').innerHTML = formatText(gemmaLog.snippet + " ... (Loaded from SOC History)");
+                }
+
+            } catch(e) {
+                console.error("Comparison fetch failed", e);
             }
-            
-            // Process Gemma
-            const gemmaKey = Object.keys(data).find(k => k.includes('gemma'));
-            const gemmaData = data[gemmaKey];
-            if (gemmaData) {
-                document.getElementById('gemmaBadge').innerHTML = createBadge(gemmaData.verdict === 'Phishing');
-                document.getElementById('gemmaExplanation').innerText = gemmaData.reasoning;
-            }
+        }
+
+        function downloadPDF(elementId) {
+            const element = document.getElementById(elementId);
+            const opt = {
+                margin:       [0.5, 0.5, 0.5, 0.5],
+                filename:     `PhishGuard_${elementId}_${new Date().getTime()}.pdf`,
+                image:        { type: 'jpeg', quality: 1.0 },
+                html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#0B0F19' },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        // ===============================================
+        // DASHBOARD LOGIC
+        // ===============================================
+        async function loadDashboardStats() {
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/v1/stats');
+                const data = await res.json();
+                
+                animateValue("stat-total", 0, data.total, 800);
+                animateValue("stat-phishing", 0, data.phishing, 800);
+                animateValue("stat-safe", 0, data.safe, 800);
+
+                const tbody = document.getElementById('stat-recent-list');
+                tbody.innerHTML = '';
+                data.recent.forEach(r => {
+                    const isPhish = r.verdict === "True";
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-[#1F2937]/50 transition-colors border-b border-white/5 last:border-0";
+                    const timeStr = r.date ? new Date(r.date).toLocaleString([], {month:'short', day:'numeric', hour: '2-digit', minute:'2-digit'}) : 'Unknown';
+                    const modeFmt = r.mode.replace('agentic-', '').toUpperCase();
+
+                    tr.innerHTML = `
+                        <td class="px-5 py-4 whitespace-nowrap text-slate-500">${timeStr}</td>
+                        <td class="px-5 py-4 whitespace-nowrap">
+                            ${isPhish ? '<span class="text-[#EF4444] text-[10px] font-bold px-2 py-1 bg-[#EF4444]/10 rounded border border-[#EF4444]/20"><i class="fas fa-radiation mr-1"></i>PHISH</span>' 
+                                      : '<span class="text-[#10B981] text-[10px] font-bold px-2 py-1 bg-[#10B981]/10 rounded border border-[#10B981]/20"><i class="fas fa-check mr-1"></i>SAFE</span>'}
+                        </td>
+                        <td class="px-5 py-4 whitespace-nowrap text-brand-accent font-semibold tracking-wider">${modeFmt}</td>
+                        <td class="px-5 py-4 text-slate-400 opacity-80 max-w-sm truncate">${r.snippet}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                renderChart(data.phishing, data.safe);
+            } catch(e) {}
+        }
+
+        function animateValue(id, start, end, duration) {
+            if (start === end) return;
+            let range = end - start;
+            let current = start;
+            let increment = end > start ? 1 : -1;
+            let stepTime = Math.abs(Math.floor(duration / range));
+            let obj = document.getElementById(id);
+            let timer = setInterval(function() {
+                current += increment;
+                obj.innerHTML = current;
+                if (current == end) clearInterval(timer);
+            }, stepTime);
+        }
+
+        function renderChart(phish, safe) {
+            const ctx = document.getElementById('ratioChart');
+            if(currentChart) currentChart.destroy();
+            currentChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Phishing Verified', 'Safe / Clean'],
+                    datasets: [{
+                        data: [phish, safe],
+                        backgroundColor: ['#EF4444', '#10B981'],
+                        borderColor: '#0B0F19', borderWidth: 5, hoverOffset: 5
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#9CA3AF', padding: 20, font: {family: 'Inter', size: 11} } } },
+                    cutout: '75%'
+                }
+            });
         }
     </script>
 </body>
