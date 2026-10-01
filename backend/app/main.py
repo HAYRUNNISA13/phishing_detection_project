@@ -21,12 +21,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- ARAYÜZÜ BURADAN SUNUYORUZ ---
+
 @app.get("/")
 async def get_index():
-    # Bu dosyanın (main.py) olduğu yer: backend/app/
-    # Bir üstü: backend/
-    # Bir üstü: phishing_detection_project/ (root)
+    
     current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     file_path = os.path.join(current_dir, "test_ui", "index.html")
     
